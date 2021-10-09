@@ -12,3 +12,7 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
  * `cdk deploy`      deploy this stack to your default AWS account/region
  * `cdk diff`        compare deployed stack with current state
  * `cdk synth`       emits the synthesized CloudFormation template
+
+
+`cat ~/.ssh/id_rsa_flowiq_cicd | pbcopy`
+https://kbild.ch/blog/2020-11-11-custom_codepipeline_source/
