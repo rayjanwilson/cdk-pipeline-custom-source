@@ -1,8 +1,27 @@
 *.js
 !jest.config.js
+!.eslintrc.js
 *.d.ts
-node_modules
+
+# Dependency directories
+node_modules/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# dotenv environment variables file
+.env.test
+.env.local
 
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# OS X
+.DS_Store
