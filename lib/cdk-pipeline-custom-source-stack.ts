@@ -1,19 +1,17 @@
 import * as cdk from '@aws-cdk/core';
-import * as cb from '@aws-cdk/aws-codebuild'
-import * as cpl from '@aws-cdk/aws-codepipeline'
-import * as cpla from '@aws-cdk/aws-codepipeline-actions'
+import * as cb from '@aws-cdk/aws-codebuild';
+import * as cpl from '@aws-cdk/aws-codepipeline';
+import * as cpla from '@aws-cdk/aws-codepipeline-actions';
+import { ThirdPartyGitAction } from './custom-action';
 
 export class CdkPipelineCustomSourceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const branch = 'dev'
-    const pipelineName = `Example-Pipeline-${branch}`
-    // const dev_pipeline = new cpl.Pipeline(this, `Pipeline-${branch}`, {
-    //   pipelineName
-    // })
+    const branch = 'dev';
+    const giturl = 'git@ssh.dev.azure.com:v3/AWS-Flowserve/FlowIQ/FlowIQ';
+    const pipelineName = `Example-Pipeline-${branch}`;
 
-    // The code that defines your stack goes here
     const webhook = new cpl.CfnWebhook(this, 'Webhook', {
       targetAction: 'Source',
       targetPipeline: pipelineName,
@@ -29,6 +27,12 @@ export class CdkPipelineCustomSourceStack extends cdk.Stack {
       registerWithThirdParty: false,
     });
 
-    this.exportValue(webhook.attrUrl, {name: 'WebhookUrl'})
+    this.exportValue(webhook.attrUrl, { name: 'WebhookUrl' });
+
+    // const source_artifact = new Artifact();
+    // const { bucketName } = source_artifact;
+    // this.exportValue(bucketName, { name: 'ArtifactBucketName' });
+
+    const custom_source_action = new ThirdPartyGitAction(this, 'TPGA', { branch, giturl });
   }
 }
