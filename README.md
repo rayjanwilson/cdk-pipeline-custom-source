@@ -1,18 +1,26 @@
-# Welcome to your CDK TypeScript project!
+`ActionType (Category: 'Source', Provider: 'CodeBuild', Owner: 'AWS', Version: '1') in action 'Source' is not available in region 'US_EAST_1'`
 
-This is a blank project for TypeScript development with CDK.
-
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
-## Useful commands
-
- * `npm run build`   compile typescript to js
- * `npm run watch`   watch for changes and compile
- * `npm run test`    perform the jest unit tests
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk synth`       emits the synthesized CloudFormation template
+no way around it, if you want to make a new custom source or anything, you need to register it via a provider
+this means making a custom provider and then a custom action
+so we pretty much DO need to look at the jenkinsprovider as an example, and then a source action like ecr
+note that we must make sure our `owner` is `Custom`
 
 
 `cat ~/.ssh/id_rsa_flowiq_cicd | pbcopy`
 https://kbild.ch/blog/2020-11-11-custom_codepipeline_source/
+
+
+
+lambda source action -> calls lambda that invokes codebuild
+https://github.com/aws/aws-cdk/blob/v1.127.0/packages/%40aws-cdk/aws-codepipeline-actions/lib/lambda/invoke-action.ts
+
+or
+
+build on the codebuild action https://github.com/aws/aws-cdk/blob/v1.127.0/packages/%40aws-cdk/aws-codepipeline-actions/lib/codebuild/build-action.ts
+specifically the type becomeing SOURCE
+
+another potential thing to build from:
+https://github.com/aws/aws-cdk/blob/v1.127.0/packages/%40aws-cdk/aws-codepipeline-actions/lib/github/source-action.ts
+in particular look how the webhook is done
+
+the ecr source one has some things too
