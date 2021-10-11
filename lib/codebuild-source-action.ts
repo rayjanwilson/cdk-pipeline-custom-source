@@ -11,7 +11,6 @@ export interface CodeBuildActionSourceProps extends cpl.CommonActionProps {
   readonly extraInputs?: cpl.Artifact[];
   readonly outputs?: cpl.Artifact[];
   readonly cbsourceProvider: ICBSourceProvider;
-  // readonly projectName: string;
   readonly project: codebuild.IProject;
   readonly pipelineName: string; // might be able to get this smartly, but for now this is a circular dependency so give name directly
   readonly branch: string;
@@ -67,8 +66,6 @@ export class CodeBuildActionSource extends cpla.Action {
       }
     }
 
-    // this.props.cbsourceProvider._registerSourceProvider();   this gets done automatically by the base abstract class
-
     // grant the Pipeline role the required permissions to this Project
     options.role.addToPolicy(
       new iam.PolicyStatement({
@@ -99,22 +96,10 @@ export class CodeBuildActionSource extends cpla.Action {
     }
 
     const configuration: any = {
-      // ProjectName: this.props.project.projectName,
       Branch: this.props.branch,
       GitUrl: this.props.giturl,
       PipelineName: this.props.pipelineName,
       SSHSecretKeyName: this.props.sshsecretkey,
-
-      // tickle
-      // EnvironmentVariables:
-      //   this.props.environmentVariables &&
-      //   cdk.Stack.of(scope).toJsonString(
-      //     codebuild.Project.serializeEnvVariables(
-      //       this.props.environmentVariables,
-      //       this.props.checkSecretsInPlainTextEnvVariables ?? true,
-      //       this.props.project
-      //     )
-      //   ),
     };
 
     if (this.props.executeBatchBuild) {

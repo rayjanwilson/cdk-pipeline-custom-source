@@ -8,7 +8,6 @@ import {
   ComputeType,
   Artifacts,
   IProject,
-  BuildEnvironmentVariable,
 } from '@aws-cdk/aws-codebuild';
 import { PolicyStatement, Effect, ServicePrincipal } from '@aws-cdk/aws-iam';
 import { IFunction, Runtime } from '@aws-cdk/aws-lambda';
@@ -23,10 +22,9 @@ export interface IProps {
   branch: string;
   giturl: string;
   keyname: string;
-  // artifact: Artifact;
 }
 
-export class ThirdPartyGitAction extends Construct {
+export class GenericGitSourceAction extends Construct {
   public readonly custom_action_function: IFunction;
   public readonly git_pull_codebuild: IProject;
   public readonly CodePipelineCustomActionTrigger: events.CfnRule;
@@ -73,64 +71,6 @@ export class ThirdPartyGitAction extends Construct {
         resources: [`arn:${partition}:secretsmanager:${region}:${account}:secret:*`],
       })
     );
-
-    // const custom_source_action = new cpl.CfnCustomActionType(this, 'CAT', {
-    //   category: 'Source',
-    //   settings: {
-    //     entityUrlTemplate:
-    //       'https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-create-custom-action.html',
-    //     executionUrlTemplate:
-    //       'https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-create-custom-action.html',
-    //   },
-    //   configurationProperties: [
-    //     {
-    //       name: 'Branch',
-    //       required: true,
-    //       key: false,
-    //       secret: false,
-    //       queryable: false,
-    //       description: 'Git branch to pull',
-    //       type: 'String',
-    //     },
-    //     {
-    //       name: 'GitUrl',
-    //       required: true,
-    //       key: false,
-    //       secret: false,
-    //       queryable: false,
-    //       description: 'SSH git clone URL',
-    //       type: 'String',
-    //     },
-    //     {
-    //       name: 'PipelineName',
-    //       required: true,
-    //       key: false,
-    //       secret: false,
-    //       queryable: true,
-    //       description: 'Name of CodePipeline',
-    //       type: 'String',
-    //     },
-    //     {
-    //       name: 'SSHSecretKeyName',
-    //       required: true,
-    //       key: false,
-    //       secret: false,
-    //       queryable: false,
-    //       description: 'Name of the Secret for SSH private Key',
-    //       type: 'String',
-    //     },
-    //   ],
-    //   inputArtifactDetails: {
-    //     maximumCount: 0,
-    //     minimumCount: 0,
-    //   },
-    //   outputArtifactDetails: {
-    //     maximumCount: 1,
-    //     minimumCount: 1,
-    //   },
-    //   provider: 'AzureDevOps',
-    //   version: '1',
-    // });
 
     this.custom_action_function = new PythonFunction(this, 'CodePipelineCustomAction', {
       entry: `${__dirname}/lambdas/`, // required

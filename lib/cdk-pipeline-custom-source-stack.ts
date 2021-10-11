@@ -2,14 +2,10 @@ import * as cdk from '@aws-cdk/core';
 import * as cb from '@aws-cdk/aws-codebuild';
 import * as cpl from '@aws-cdk/aws-codepipeline';
 import * as cpla from '@aws-cdk/aws-codepipeline-actions';
-import * as iam from '@aws-cdk/aws-iam';
-import * as s3 from '@aws-cdk/aws-s3';
-import { ThirdPartyGitAction } from './custom-action';
+
+import { GenericGitSourceAction } from './custom-action';
 import { CodeBuildActionSource } from './codebuild-source-action';
-import { BuildSpec, ComputeType, LinuxBuildImage } from '@aws-cdk/aws-codebuild';
 import { CBSourceProvider } from './codebuild-source-provider';
-import { readFileSync } from 'fs';
-import { load } from 'js-yaml';
 
 export class CdkPipelineCustomSourceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -21,7 +17,6 @@ export class CdkPipelineCustomSourceStack extends cdk.Stack {
     const giturl = 'git@github.com:rayjanwilson/cdk-pipeline-custom-source.git';
     const keyname = 'SSHKeyGithub';
     const pipelineName = `Example-Pipeline-${branch}`;
-    // const { partition, region, account } = cdk.Stack.of(this);
 
     const webhook = new cpl.CfnWebhook(this, 'Webhook', {
       targetAction: 'Source',
@@ -37,7 +32,6 @@ export class CdkPipelineCustomSourceStack extends cdk.Stack {
       authenticationConfiguration: {},
       registerWithThirdParty: false,
     });
-
     this.exportValue(webhook.attrUrl, { name: 'WebhookUrl' });
 
     const cbsourceProvider = new CBSourceProvider(this, 'SourceProvider', {
@@ -45,7 +39,7 @@ export class CdkPipelineCustomSourceStack extends cdk.Stack {
       version: '2',
     });
 
-    const { git_pull_codebuild } = new ThirdPartyGitAction(this, 'TPGA', { branch, giturl, keyname });
+    const { git_pull_codebuild } = new GenericGitSourceAction(this, 'GenericSource', { branch, giturl, keyname });
 
     const sourceArtifact = new cpl.Artifact();
 
@@ -75,10 +69,10 @@ export class CdkPipelineCustomSourceStack extends cdk.Stack {
               input: sourceArtifact,
               project: new cb.Project(this, 'GenericBuild', {
                 environment: {
-                  buildImage: LinuxBuildImage.STANDARD_5_0,
-                  computeType: ComputeType.SMALL,
+                  buildImage: cb.LinuxBuildImage.STANDARD_5_0,
+                  computeType: cb.ComputeType.SMALL,
                 },
-                buildSpec: BuildSpec.fromObject({
+                buildSpec: cb.BuildSpec.fromObject({
                   version: 0.2,
                   phases: {
                     install: {
