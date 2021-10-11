@@ -7,15 +7,15 @@ phases:
     commands:
       - echo $pipelinename
       - echo $executionid
-      - which jq
+      - echo $ProviderName
       - wait_period=0
       - |
         while true
         do
-            jobdetail=$(aws codepipeline poll-for-jobs --action-type-id category="Source",owner="Custom",provider="GenericGitSource",version="1" --query-param PipelineName=$pipelinename --max-batch-size 1)
+            jobdetail=$(aws codepipeline poll-for-jobs --action-type-id category="Source",owner="Custom",provider=$ProviderName,version="1" --query-param PipelineName=$pipelinename --max-batch-size 1)
             provider=$(echo $jobdetail | jq '.jobs[0].data.actionTypeId.provider' -r)
             wait_period=$(($wait_period+10))
-            if [ $provider = "GenericGitSource" ];then
+            if [ $provider = $ProviderName ];then
               echo $jobdetail
               break
             fi

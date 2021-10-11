@@ -15,6 +15,7 @@ export interface IProps {
   giturl: string;
   keyname: string;
   buildspecname: string;
+  providerName: string;
 }
 
 export class GenericGitSourceAction extends cdk.Construct {
@@ -25,7 +26,7 @@ export class GenericGitSourceAction extends cdk.Construct {
   constructor(scope: cdk.Construct, id: string, props: IProps) {
     super(scope, id);
 
-    const { branch, giturl, keyname, buildspecname } = props;
+    const { branch, giturl, keyname, buildspecname, providerName } = props;
     const { partition, region, account } = cdk.Stack.of(this);
 
     const doc = readFileSync(`${__dirname}/${buildspecname}`, 'utf8');
@@ -47,6 +48,9 @@ export class GenericGitSourceAction extends cdk.Construct {
         },
         GitUrl: {
           value: giturl,
+        },
+        ProviderName: {
+          value: providerName,
         },
       },
     });

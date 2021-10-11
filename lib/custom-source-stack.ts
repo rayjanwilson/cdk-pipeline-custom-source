@@ -45,6 +45,7 @@ export class CustomSourceStack extends cdk.Stack {
       giturl,
       keyname,
       buildspecname,
+      providerName: cbsourceProvider.providerName,
     });
 
     const sourceArtifact = new cpl.Artifact();
