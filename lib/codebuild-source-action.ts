@@ -105,7 +105,7 @@ export class CodeBuildActionSource extends cpla.Action {
       PipelineName: this.props.pipelineName,
       SSHSecretKeyName: this.props.sshsecretkey,
 
-      /// tickle
+      // tickle
       // EnvironmentVariables:
       //   this.props.environmentVariables &&
       //   cdk.Stack.of(scope).toJsonString(
