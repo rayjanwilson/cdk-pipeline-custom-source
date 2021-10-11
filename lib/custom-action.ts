@@ -169,7 +169,10 @@ export class GenericGitSourceAction extends cdk.Construct {
           id: 'triggerjobworker',
           roleArn: cloudwatch_event_role.roleArn,
           inputTransformer: {
-            inputPathsMap: { executionid: '$.detail.execution-id', pipelinename: '$.detail.pipeline' },
+            inputPathsMap: {
+              executionid: '$.detail.execution-id',
+              pipelinename: '$.detail.pipeline',
+            },
             inputTemplate:
               '{"environmentVariablesOverride": [{"name": "executionid", "type": "PLAINTEXT", "value": <executionid>},{"name": "pipelinename", "type": "PLAINTEXT", "value": <pipelinename>}]}',
           },
@@ -203,9 +206,9 @@ export class GenericGitSourceAction extends cdk.Construct {
 
     const build_failed = new events.CfnRule(this, 'CustomSourceBuildFailed', {
       state: 'ENABLED',
-      description: 'Handles the CodeBuildSource custom provider for CodePipeline',
+      description: 'Handles CodeBuild FAILURE event for this particular projectName',
       eventPattern: {
-        source: ['aws.codepipeline'],
+        source: ['aws.codebuild'],
         'detail-type': ['CodeBuild Build State Change'],
         detail: {
           'build-status': ['FAILED'],

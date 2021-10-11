@@ -8,6 +8,7 @@ phases:
       - echo $pipelinename
       - echo $executionid
       - echo $ProviderName
+      - echo $Branch
       - wait_period=0
       - |
         while true

@@ -88,7 +88,7 @@ export class CustomSourceStack extends cdk.Stack {
                       },
                     },
                     build: {
-                      commands: ['echo hello'],
+                      commands: ['echo hello', 'ls -la'],
                     },
                   },
                 }),
