@@ -24,7 +24,7 @@ def lambda_handler(event, context):
         counter = 0
         while counter < 10:  # capped this, so it just fails if it takes too long
             time.sleep(5)
-            logger.info(counter)
+            logger.info(f'counter: {counter}')
             counter = counter + 1
             polled_jobs = codepipeline_client.poll_for_jobs(
                 actionTypeId={
@@ -39,7 +39,7 @@ def lambda_handler(event, context):
                 })
             if (counter == 10 and polled_jobs['jobs'] == []):
                 raise Exception(
-                    "Please check if the Pipeline Name in the custom configuration is same as " + pipelineName)
+                    f'Please check if the Pipeline Name in the custom configuration is same as {pipelineName}')
             if not polled_jobs['jobs'] == []:
                 break
         logger.info(polled_jobs)
