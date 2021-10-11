@@ -1,24 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import {
-  Project,
-  LinuxBuildImage,
-  BuildSpec,
-  BuildEnvironmentVariableType,
-  ComputeType,
-  Artifacts,
-  IProject,
-  ImagePullPrincipalType,
-} from '@aws-cdk/aws-codebuild';
-import { PolicyStatement, Effect, ServicePrincipal } from '@aws-cdk/aws-iam';
-import { IFunction, Runtime } from '@aws-cdk/aws-lambda';
-import { Construct, Duration, Stack } from '@aws-cdk/core';
-import { readFileSync } from 'fs';
-import { load } from 'js-yaml';
-import * as s3 from '@aws-cdk/aws-s3';
+
+import * as cdk from '@aws-cdk/core';
+import * as cb from '@aws-cdk/aws-codebuild';
 import * as events from '@aws-cdk/aws-events';
 import * as iam from '@aws-cdk/aws-iam';
+import * as lambda from '@aws-cdk/aws-lambda';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python';
+import { readFileSync } from 'fs';
+import { load } from 'js-yaml';
 
 export interface IProps {
   branch: string;
@@ -27,32 +17,30 @@ export interface IProps {
   buildspecname: string;
 }
 
-export class GenericGitSourceAction extends Construct {
-  public readonly custom_action_function: IFunction;
-  public readonly git_pull_codebuild: IProject;
+export class GenericGitSourceAction extends cdk.Construct {
+  public readonly custom_action_function: lambda.IFunction;
+  public readonly git_pull_codebuild: cb.IProject;
   public readonly CodePipelineCustomActionTrigger: events.CfnRule;
 
-  constructor(scope: Construct, id: string, props: IProps) {
+  constructor(scope: cdk.Construct, id: string, props: IProps) {
     super(scope, id);
 
     const { branch, giturl, keyname, buildspecname } = props;
-    const { partition, region, account } = Stack.of(this);
+    const { partition, region, account } = cdk.Stack.of(this);
 
     const doc = readFileSync(`${__dirname}/${buildspecname}`, 'utf8');
     const build_spec = load(doc) as { [key: string]: any };
 
-    const artifact = new s3.Bucket(this, 'SourceArtifact');
-
-    this.git_pull_codebuild = new Project(this, 'TPGA', {
+    this.git_pull_codebuild = new cb.Project(this, 'TPGA', {
       environment: {
-        buildImage: LinuxBuildImage.STANDARD_5_0,
-        computeType: ComputeType.SMALL,
+        buildImage: cb.LinuxBuildImage.STANDARD_5_0,
+        computeType: cb.ComputeType.SMALL,
       },
-      buildSpec: BuildSpec.fromObjectToYaml(build_spec),
+      buildSpec: cb.BuildSpec.fromObjectToYaml(build_spec),
       environmentVariables: {
         SSHSecretKeyName: {
           value: keyname,
-          type: BuildEnvironmentVariableType.PLAINTEXT,
+          type: cb.BuildEnvironmentVariableType.PLAINTEXT,
         },
         Branch: {
           value: branch,
@@ -61,35 +49,17 @@ export class GenericGitSourceAction extends Construct {
           value: giturl,
         },
       },
-      artifacts: Artifacts.s3({
-        bucket: artifact,
-        includeBuildId: true,
-        packageZip: true,
-      }),
     });
     this.git_pull_codebuild.addToRolePolicy(
-      new PolicyStatement({
-        effect: Effect.ALLOW,
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
         actions: ['secretsmanager:GetSecretValue'],
         resources: [`arn:${partition}:secretsmanager:${region}:${account}:secret:*`],
       })
     );
-
-    this.custom_action_function = new PythonFunction(this, 'CodePipelineCustomAction', {
-      entry: `${__dirname}/lambdas/`, // required
-      index: 'third_party_git_action.py',
-      handler: 'lambda_handler',
-      environment: {
-        LOG_LEVEL: 'DEBUG',
-        GitPullCodeBuild: this.git_pull_codebuild.projectName,
-      },
-      runtime: Runtime.PYTHON_3_7,
-      timeout: Duration.minutes(15),
-    });
-    this.custom_action_function.grantInvoke(new ServicePrincipal('events.amazonaws.com'));
-    this.custom_action_function.addToRolePolicy(
-      new PolicyStatement({
-        effect: Effect.ALLOW,
+    this.git_pull_codebuild.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
         actions: [
           'codepipeline:PollForJobs',
           'codepipeline:AcknowledgeJob',
@@ -98,39 +68,67 @@ export class GenericGitSourceAction extends Construct {
           'codepipeline:PutJobFailureResult',
           'codepipeline:StopPipelineExecution',
         ],
+        // resources: [`arn:aws:codepipeline:${region}:${account}:actiontype:Custom/Source/*`],
         resources: ['*'],
       })
     );
-    this.custom_action_function.addToRolePolicy(
-      new PolicyStatement({
-        effect: Effect.ALLOW,
-        actions: ['codebuild:StartBuild', 'codebuild:BatchGetBuilds'],
-        resources: [this.git_pull_codebuild.projectArn],
-      })
-    );
 
-    this.CodePipelineCustomActionTrigger = new events.CfnRule(this, 'TriggerRule', {
-      state: 'ENABLED',
-      description: 'Handles the CodeBuildSource custom provider for CodePipeline',
-      eventPattern: {
-        source: ['aws.codepipeline'],
-        'detail-type': ['CodePipeline Action Execution State Change'],
-        detail: {
-          type: {
-            provider: ['CodeBuildSource'],
-            category: ['Source'],
-            owner: ['Custom'],
-          },
-          state: ['STARTED'],
-        },
-      },
-      targets: [
-        {
-          arn: this.custom_action_function.functionArn,
-          id: 'CodePipelineCustomActionTrigger',
-        },
-      ],
-    });
+    // this.custom_action_function = new PythonFunction(this, 'CodePipelineCustomAction', {
+    //   entry: `${__dirname}/lambdas/`, // required
+    //   index: 'third_party_git_action.py',
+    //   handler: 'lambda_handler',
+    //   environment: {
+    //     LOG_LEVEL: 'DEBUG',
+    //     GitPullCodeBuild: this.git_pull_codebuild.projectName,
+    //   },
+    //   runtime: Runtime.PYTHON_3_7,
+    //   timeout: Duration.minutes(15),
+    // });
+    // this.custom_action_function.grantInvoke(new ServicePrincipal('events.amazonaws.com'));
+    // this.custom_action_function.addToRolePolicy(
+    //   new PolicyStatement({
+    //     effect: Effect.ALLOW,
+    //     actions: [
+    //       'codepipeline:PollForJobs',
+    //       'codepipeline:AcknowledgeJob',
+    //       'codepipeline:GetJobDetails',
+    //       'codepipeline:PutJobSuccessResult',
+    //       'codepipeline:PutJobFailureResult',
+    //       'codepipeline:StopPipelineExecution',
+    //     ],
+    //     resources: ['*'],
+    //   })
+    // );
+    // this.custom_action_function.addToRolePolicy(
+    //   new PolicyStatement({
+    //     effect: Effect.ALLOW,
+    //     actions: ['codebuild:StartBuild', 'codebuild:BatchGetBuilds'],
+    //     resources: [this.git_pull_codebuild.projectArn],
+    //   })
+    // );
+
+    // this.CodePipelineCustomActionTrigger = new events.CfnRule(this, 'TriggerRule', {
+    //   state: 'ENABLED',
+    //   description: 'Handles the CodeBuildSource custom provider for CodePipeline',
+    //   eventPattern: {
+    //     source: ['aws.codepipeline'],
+    //     'detail-type': ['CodePipeline Action Execution State Change'],
+    //     detail: {
+    //       type: {
+    //         provider: ['CodeBuildSource'],
+    //         category: ['Source'],
+    //         owner: ['Custom'],
+    //       },
+    //       state: ['STARTED'],
+    //     },
+    //   },
+    //   targets: [
+    //     {
+    //       arn: this.custom_action_function.functionArn,
+    //       id: 'CodePipelineCustomActionTrigger',
+    //     },
+    //   ],
+    // });
 
     const cloudwatch_event_role = new iam.Role(this, 'CWEEventRole', {
       assumedBy: new iam.ServicePrincipal('events.amazonaws.com'),
@@ -183,8 +181,9 @@ export class GenericGitSourceAction extends Construct {
         LOG_LEVEL: 'DEBUG',
         // GitPullCodeBuild: this.git_pull_codebuild.projectName,
       },
-      runtime: Runtime.PYTHON_3_7,
-      timeout: Duration.minutes(15),
+      runtime: lambda.Runtime.PYTHON_3_9,
+      timeout: cdk.Duration.minutes(15),
+      architecture: lambda.Architecture.ARM_64,
     });
     lambda_build_fails.addToRolePolicy(
       new iam.PolicyStatement({

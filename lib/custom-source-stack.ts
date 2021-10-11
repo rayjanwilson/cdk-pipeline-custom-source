@@ -97,5 +97,7 @@ export class CustomSourceStack extends cdk.Stack {
         },
       ],
     });
+
+    pipeline.artifactBucket.grantReadWrite(git_pull_codebuild);
   }
 }

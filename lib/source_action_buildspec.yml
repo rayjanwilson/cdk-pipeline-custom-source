@@ -7,6 +7,7 @@ phases:
     commands:
       - echo $pipelinename
       - echo $executionid
+      - which jq
       - wait_period=0
       - |
         while true
@@ -14,7 +15,7 @@ phases:
             jobdetail=$(aws codepipeline poll-for-jobs --action-type-id category="Source",owner="Custom",provider="GenericGitSource",version="1" --query-param PipelineName=$pipelinename --max-batch-size 1)
             provider=$(echo $jobdetail | jq '.jobs[0].data.actionTypeId.provider' -r)
             wait_period=$(($wait_period+10))
-            if [ $provider = "AzureDevOpsRepo" ];then
+            if [ $provider = "GenericGitSource" ];then
               echo $jobdetail
               break
             fi
@@ -30,23 +31,36 @@ phases:
       - echo $jobid
       - ack=$(aws codepipeline acknowledge-job --job-id $(echo $jobdetail | jq '.jobs[0].id' -r) --nonce $(echo $jobdetail | jq '.jobs[0].nonce' -r))
       - Branch=$(echo $jobdetail | jq '.jobs[0].data.actionConfiguration.configuration.Branch' -r)
-      - Organization=$(echo $jobdetail | jq '.jobs[0].data.actionConfiguration.configuration.Organization' -r)
-      - Repo=$(echo $jobdetail | jq '.jobs[0].data.actionConfiguration.configuration.Repo' -r)
-      - Project=$(echo $jobdetail | jq '.jobs[0].data.actionConfiguration.configuration.Project' -r)
+      # - Organization=$(echo $jobdetail | jq '.jobs[0].data.actionConfiguration.configuration.Organization' -r)
+      # - Repo=$(echo $jobdetail | jq '.jobs[0].data.actionConfiguration.configuration.Repo' -r)
+      # - Project=$(echo $jobdetail | jq '.jobs[0].data.actionConfiguration.configuration.Project' -r)
       - ObjectKey=$(echo $jobdetail | jq '.jobs[0].data.outputArtifacts[0].location.s3Location.objectKey' -r)
       - BucketName=$(echo $jobdetail | jq '.jobs[0].data.outputArtifacts[0].location.s3Location.bucketName' -r)
-      - aws secretsmanager get-secret-value --secret-id ${SSHKey} --query 'SecretString' --output text | base64 --decode > ~/.ssh/id_rsa
+      # - aws secretsmanager get-secret-value --secret-id ${SSHKey} --query 'SecretString' --output text | base64 --decode > ~/.ssh/id_rsa
+      - aws secretsmanager get-secret-value --secret-id $SSHSecretKeyName --query 'SecretString' --output text >> ~/.ssh/id_rsa
+      - ls ~/
+      - echo "Setting SSH config profile"
+      - |
+        cat > ~/.ssh/config <<EOF
+        Host *
+          AddKeysToAgent yes
+          StrictHostKeyChecking no
+          IdentityFile ~/.ssh/id_rsa
+        EOF
       - chmod 600 ~/.ssh/id_rsa
-      - ssh-keygen -F ssh.dev.azure.com || ssh-keyscan ssh.dev.azure.com >>~/.ssh/known_hosts
+      # - ssh-keygen -F ssh.dev.azure.com || ssh-keyscan ssh.dev.azure.com >>~/.ssh/known_hosts
   build:
     commands:
-      - git clone "git@ssh.dev.azure.com:v3/$Organization/$Project/$Repo"
-      - cd $Repo
-      - git checkout $Branch
+      # - git clone "git@ssh.dev.azure.com:v3/$Organization/$Project/$Repo"
+      - echo "Cloning the repository $GitUrl on branch $Branch"
+      - git clone --single-branch --depth=1 --branch $Branch $GitUrl .
+      - ls
+      # - cd $Repo
+      # - git checkout $Branch
       - zip -r output_file.zip *
       - aws s3 cp output_file.zip s3://$BucketName/$ObjectKey
       - aws codepipeline put-job-success-result --job-id $(echo $jobdetail | jq '.jobs[0].id' -r)
 artifacts:
   files:
     - '**/*'
-  base-directory: '$Repo'
+  # base-directory: '$Repo'
