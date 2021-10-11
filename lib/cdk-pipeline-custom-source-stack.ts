@@ -21,7 +21,7 @@ export class CdkPipelineCustomSourceStack extends cdk.Stack {
     const giturl = 'git@github.com:rayjanwilson/cdk-pipeline-custom-source.git';
     const keyname = 'SSHKeyGithub';
     const pipelineName = `Example-Pipeline-${branch}`;
-    const { partition, region, account } = cdk.Stack.of(this);
+    // const { partition, region, account } = cdk.Stack.of(this);
 
     const webhook = new cpl.CfnWebhook(this, 'Webhook', {
       targetAction: 'Source',
@@ -45,11 +45,7 @@ export class CdkPipelineCustomSourceStack extends cdk.Stack {
       version: '2',
     });
 
-    const { git_pull_codebuild, custom_action_function, CodePipelineCustomActionTrigger } = new ThirdPartyGitAction(
-      this,
-      'TPGA',
-      { branch, giturl, keyname }
-    );
+    const { git_pull_codebuild } = new ThirdPartyGitAction(this, 'TPGA', { branch, giturl, keyname });
 
     const sourceArtifact = new cpl.Artifact();
 
