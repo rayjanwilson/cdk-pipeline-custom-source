@@ -77,63 +77,6 @@ export class GenericGitSourceAction extends cdk.Construct {
       })
     );
 
-    // this.custom_action_function = new PythonFunction(this, 'CodePipelineCustomAction', {
-    //   entry: `${__dirname}/lambdas/`, // required
-    //   index: 'third_party_git_action.py',
-    //   handler: 'lambda_handler',
-    //   environment: {
-    //     LOG_LEVEL: 'DEBUG',
-    //     GitPullCodeBuild: this.git_pull_codebuild.projectName,
-    //   },
-    //   runtime: Runtime.PYTHON_3_7,
-    //   timeout: Duration.minutes(15),
-    // });
-    // this.custom_action_function.grantInvoke(new ServicePrincipal('events.amazonaws.com'));
-    // this.custom_action_function.addToRolePolicy(
-    //   new PolicyStatement({
-    //     effect: Effect.ALLOW,
-    //     actions: [
-    //       'codepipeline:PollForJobs',
-    //       'codepipeline:AcknowledgeJob',
-    //       'codepipeline:GetJobDetails',
-    //       'codepipeline:PutJobSuccessResult',
-    //       'codepipeline:PutJobFailureResult',
-    //       'codepipeline:StopPipelineExecution',
-    //     ],
-    //     resources: ['*'],
-    //   })
-    // );
-    // this.custom_action_function.addToRolePolicy(
-    //   new PolicyStatement({
-    //     effect: Effect.ALLOW,
-    //     actions: ['codebuild:StartBuild', 'codebuild:BatchGetBuilds'],
-    //     resources: [this.git_pull_codebuild.projectArn],
-    //   })
-    // );
-
-    // this.CodePipelineCustomActionTrigger = new events.CfnRule(this, 'TriggerRule', {
-    //   state: 'ENABLED',
-    //   description: 'Handles the CodeBuildSource custom provider for CodePipeline',
-    //   eventPattern: {
-    //     source: ['aws.codepipeline'],
-    //     'detail-type': ['CodePipeline Action Execution State Change'],
-    //     detail: {
-    //       type: {
-    //         provider: ['CodeBuildSource'],
-    //         category: ['Source'],
-    //         owner: ['Custom'],
-    //       },
-    //       state: ['STARTED'],
-    //     },
-    //   },
-    //   targets: [
-    //     {
-    //       arn: this.custom_action_function.functionArn,
-    //       id: 'CodePipelineCustomActionTrigger',
-    //     },
-    //   ],
-    // });
-
     const cloudwatch_event_role = new iam.Role(this, 'CWEEventRole', {
       assumedBy: new iam.ServicePrincipal('events.amazonaws.com'),
       inlinePolicies: {
@@ -148,7 +91,7 @@ export class GenericGitSourceAction extends cdk.Construct {
         }),
       },
     });
-    const cloudwatch_event = new events.CfnRule(this, 'NewTriggerRule', {
+    const cloudwatch_event = new events.CfnRule(this, 'TriggerRule', {
       state: 'ENABLED',
       description: 'Handles the CodeBuildSource custom provider for CodePipeline',
       eventPattern: {
