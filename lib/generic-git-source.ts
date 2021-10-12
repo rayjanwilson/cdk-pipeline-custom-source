@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
 import * as cdk from '@aws-cdk/core';
 import * as cb from '@aws-cdk/aws-codebuild';
 import * as events from '@aws-cdk/aws-events';
@@ -76,7 +73,6 @@ export class GenericGitSource extends cdk.Construct {
           'codepipeline:PutJobFailureResult',
           'codepipeline:StopPipelineExecution',
         ],
-        // resources: [`arn:aws:codepipeline:${region}:${account}:actiontype:Custom/Source/*`],
         resources: ['*'],
       })
     );
@@ -133,7 +129,6 @@ export class GenericGitSource extends cdk.Construct {
       handler: 'lambda_handler',
       environment: {
         LOG_LEVEL: 'DEBUG',
-        // GitPullCodeBuild: this.git_pull_codebuild.projectName,
       },
       runtime: lambda.Runtime.PYTHON_3_9,
       timeout: cdk.Duration.minutes(15),
