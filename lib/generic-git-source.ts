@@ -9,6 +9,7 @@ import * as lambda from '@aws-cdk/aws-lambda';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python';
 import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
+import { CBSourceProvider } from './codebuild-source-provider';
 
 export interface IProps {
   branch: string;
@@ -18,10 +19,9 @@ export interface IProps {
   providerName: string;
 }
 
-export class GenericGitSourceAction extends cdk.Construct {
-  public readonly custom_action_function: lambda.IFunction;
-  public readonly git_pull_codebuild: cb.IProject;
-  public readonly CodePipelineCustomActionTrigger: events.CfnRule;
+export class GenericGitSource extends cdk.Construct {
+  public readonly project: cb.IProject;
+  public readonly provider: CBSourceProvider;
 
   constructor(scope: cdk.Construct, id: string, props: IProps) {
     super(scope, id);
@@ -29,10 +29,14 @@ export class GenericGitSourceAction extends cdk.Construct {
     const { branch, giturl, keyname, buildspec_location, providerName } = props;
     const { partition, region, account } = cdk.Stack.of(this);
 
+    this.provider = new CBSourceProvider(this, 'GenericGitSourceProvider', {
+      providerName,
+    });
+
     const doc = readFileSync(buildspec_location, 'utf8');
     const build_spec = load(doc) as { [key: string]: any };
 
-    this.git_pull_codebuild = new cb.Project(this, 'TPGA', {
+    this.project = new cb.Project(this, 'TPGA', {
       environment: {
         buildImage: cb.LinuxBuildImage.STANDARD_5_0,
         computeType: cb.ComputeType.SMALL,
@@ -54,14 +58,14 @@ export class GenericGitSourceAction extends cdk.Construct {
         },
       },
     });
-    this.git_pull_codebuild.addToRolePolicy(
+    this.project.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: ['secretsmanager:GetSecretValue'],
         resources: [`arn:${partition}:secretsmanager:${region}:${account}:secret:*`],
       })
     );
-    this.git_pull_codebuild.addToRolePolicy(
+    this.project.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: [
@@ -85,7 +89,7 @@ export class GenericGitSourceAction extends cdk.Construct {
             new iam.PolicyStatement({
               effect: iam.Effect.ALLOW,
               actions: ['codebuild:StartBuild'],
-              resources: [this.git_pull_codebuild.projectArn],
+              resources: [this.project.projectArn],
             }),
           ],
         }),
@@ -108,7 +112,7 @@ export class GenericGitSourceAction extends cdk.Construct {
       },
       targets: [
         {
-          arn: this.git_pull_codebuild.projectArn,
+          arn: this.project.projectArn,
           id: 'triggerjobworker',
           roleArn: cloudwatch_event_role.roleArn,
           inputTransformer: {
@@ -155,7 +159,7 @@ export class GenericGitSourceAction extends cdk.Construct {
         'detail-type': ['CodeBuild Build State Change'],
         detail: {
           'build-status': ['FAILED'],
-          'project-name': [this.git_pull_codebuild.projectName],
+          'project-name': [this.project.projectName],
         },
       },
       targets: [

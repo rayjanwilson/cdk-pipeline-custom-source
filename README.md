@@ -6,8 +6,6 @@ so we pretty much DO need to look at the jenkinsprovider as an example, and then
 note that we must make sure our `owner` is `Custom`
 
 
-`cat ~/.ssh/id_rsa_flowiq_cicd | pbcopy`
-
 - [azure devops specific codebuild and webhook](https://kbild.ch/blog/2020-11-11-custom_codepipeline_source/)
 
 

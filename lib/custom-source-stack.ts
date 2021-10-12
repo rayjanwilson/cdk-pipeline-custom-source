@@ -3,9 +3,8 @@ import * as cb from '@aws-cdk/aws-codebuild';
 import * as cpl from '@aws-cdk/aws-codepipeline';
 import * as cpla from '@aws-cdk/aws-codepipeline-actions';
 
-import { GenericGitSourceAction } from './generic-git-source-action';
+import { GenericGitSource } from './generic-git-source';
 import { CodeBuildSourceAction } from './codebuild-source-action';
-import { CBSourceProvider } from './codebuild-source-provider';
 
 export class CustomSourceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -17,16 +16,12 @@ export class CustomSourceStack extends cdk.Stack {
     const buildspec_location = `${__dirname}/source_action_buildspec.yml`;
     const pipelineName = `Example-Pipeline-${branch}`;
 
-    const cbsourceProvider = new CBSourceProvider(this, 'GenericGitSourceProvider', {
-      providerName: 'GenericGitSource',
-    });
-
-    const { git_pull_codebuild } = new GenericGitSourceAction(this, 'GenericSource', {
+    const { project, provider } = new GenericGitSource(this, 'GenericGitSource', {
       branch,
       giturl,
       keyname,
       buildspec_location,
-      providerName: cbsourceProvider.providerName,
+      providerName: 'GenericGitSource',
     });
 
     const sourceArtifact = new cpl.Artifact();
@@ -38,8 +33,8 @@ export class CustomSourceStack extends cdk.Stack {
           actions: [
             new CodeBuildSourceAction({
               actionName: 'Source',
-              cbsourceProvider,
-              project: git_pull_codebuild,
+              cbsourceProvider: provider,
+              project: project,
               pipelineName,
               branch,
               giturl,
@@ -89,7 +84,7 @@ export class CustomSourceStack extends cdk.Stack {
         },
       ],
     });
-    pipeline.artifactBucket.grantReadWrite(git_pull_codebuild);
+    pipeline.artifactBucket.grantReadWrite(project);
 
     const webhook = new cpl.CfnWebhook(this, 'GenericWebhook', {
       targetAction: 'Source',
