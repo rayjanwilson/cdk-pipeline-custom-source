@@ -12,8 +12,7 @@ export interface CodeBuildSourceActionProps extends cpl.CommonActionProps {
   readonly pipelineName: string; // might be able to get this smartly, but for now this is a circular dependency so give name directly
   readonly branch: string;
   readonly giturl: string;
-  readonly sshsecretkey: string;
-  // readonly type?: cpla.CodeBuildActionType;
+  readonly sshsecretkey: string; // the name of the private key stored in secrets manager
   readonly environmentVariables?: { [name: string]: codebuild.BuildEnvironmentVariable };
   readonly checkSecretsInPlainTextEnvVariables?: boolean;
   readonly executeBatchBuild?: boolean;
