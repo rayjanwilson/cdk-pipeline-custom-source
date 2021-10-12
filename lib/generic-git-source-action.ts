@@ -14,7 +14,7 @@ export interface IProps {
   branch: string;
   giturl: string;
   keyname: string;
-  buildspecname: string;
+  buildspec_location: string;
   providerName: string;
 }
 
@@ -26,10 +26,10 @@ export class GenericGitSourceAction extends cdk.Construct {
   constructor(scope: cdk.Construct, id: string, props: IProps) {
     super(scope, id);
 
-    const { branch, giturl, keyname, buildspecname, providerName } = props;
+    const { branch, giturl, keyname, buildspec_location, providerName } = props;
     const { partition, region, account } = cdk.Stack.of(this);
 
-    const doc = readFileSync(`${__dirname}/${buildspecname}`, 'utf8');
+    const doc = readFileSync(buildspec_location, 'utf8');
     const build_spec = load(doc) as { [key: string]: any };
 
     this.git_pull_codebuild = new cb.Project(this, 'TPGA', {

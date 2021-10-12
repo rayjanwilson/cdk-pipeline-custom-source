@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as cdk from '@aws-cdk/core';
 import * as cpl from '@aws-cdk/aws-codepipeline';
 import * as cpla from '@aws-cdk/aws-codepipeline-actions';
@@ -6,9 +5,7 @@ import * as codebuild from '@aws-cdk/aws-codebuild';
 import * as iam from '@aws-cdk/aws-iam';
 import { ICBSourceProvider } from './codebuild-source-provider';
 
-export interface CodeBuildActionSourceProps extends cpl.CommonActionProps {
-  readonly input?: cpl.Artifact;
-  readonly extraInputs?: cpl.Artifact[];
+export interface CodeBuildSourceActionProps extends cpl.CommonActionProps {
   readonly outputs?: cpl.Artifact[];
   readonly cbsourceProvider: ICBSourceProvider;
   readonly project: codebuild.IProject;
@@ -16,22 +13,21 @@ export interface CodeBuildActionSourceProps extends cpl.CommonActionProps {
   readonly branch: string;
   readonly giturl: string;
   readonly sshsecretkey: string;
-  readonly type?: cpla.CodeBuildActionType;
+  // readonly type?: cpla.CodeBuildActionType;
   readonly environmentVariables?: { [name: string]: codebuild.BuildEnvironmentVariable };
   readonly checkSecretsInPlainTextEnvVariables?: boolean;
   readonly executeBatchBuild?: boolean;
   readonly combineBatchBuildArtifacts?: boolean;
 }
-export class CodeBuildActionSource extends cpla.Action {
-  private readonly props: CodeBuildActionSourceProps;
-  constructor(props: CodeBuildActionSourceProps) {
+export class CodeBuildSourceAction extends cpla.Action {
+  private readonly props: CodeBuildSourceActionProps;
+  constructor(props: CodeBuildSourceActionProps) {
     super({
       ...props,
       category: cpl.ActionCategory.SOURCE,
       provider: props.cbsourceProvider.providerName,
-      owner: 'Custom',
+      owner: 'Custom', // MUST be Custom
       artifactBounds: { minInputs: 0, maxInputs: 0, minOutputs: 1, maxOutputs: 1 },
-      // resource: props.project,
       version: props.cbsourceProvider.version,
     });
 
@@ -67,7 +63,7 @@ export class CodeBuildActionSource extends cpla.Action {
     }
 
     // grant the Pipeline role the required permissions to this Project
-    options.role.addToPolicy(
+    options.role.addToPrincipalPolicy(
       new iam.PolicyStatement({
         resources: [this.props.project.projectArn],
         actions: [
@@ -95,7 +91,7 @@ export class CodeBuildActionSource extends cpla.Action {
       });
     }
 
-    const configuration: any = {
+    const configuration: Record<string, string> = {
       Branch: this.props.branch,
       GitUrl: this.props.giturl,
       PipelineName: this.props.pipelineName,
