@@ -58,7 +58,8 @@ export class PipelineStack extends cdk.Stack {
     const synthAction = pps.SimpleSynthAction.standardNpmSynth({
       sourceArtifact,
       cloudAssemblyArtifact,
-      buildCommand: 'ls -la && npm --version && npm install && npm run build',
+      installCommand: 'npm i -g npm@latest',
+      // buildCommand: 'ls -la && npm --version && npm install && npm run build',
       environmentVariables: {
         branch: { value: branch },
       },
