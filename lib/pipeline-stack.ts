@@ -2,6 +2,7 @@ import * as cdk from '@aws-cdk/core';
 import * as cb from '@aws-cdk/aws-codebuild';
 import * as cpl from '@aws-cdk/aws-codepipeline';
 import * as cpla from '@aws-cdk/aws-codepipeline-actions';
+import * as s3 from '@aws-cdk/aws-s3';
 
 import { GenericGitSource } from './generic-git-source';
 import { CodeBuildSourceAction } from './codebuild-source-action';
@@ -25,8 +26,17 @@ export class PipelineStack extends cdk.Stack {
     });
 
     const sourceArtifact = new cpl.Artifact();
+    const artifactBucket = new s3.Bucket(this, 'ArtifactsBucket', {
+      bucketName: cdk.PhysicalName.GENERATE_IF_NEEDED,
+      encryption: s3.BucketEncryption.KMS_MANAGED,
+      blockPublicAccess: new s3.BlockPublicAccess(s3.BlockPublicAccess.BLOCK_ALL),
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // <--- when the stack gets destroyed this bucket now gets destroyed
+      autoDeleteObjects: true, // <--- stands up a custom lambda resource that empties the bucket before removal
+    });
     const pipeline = new cpl.Pipeline(this, pipelineName, {
       pipelineName,
+      artifactBucket,
+      restartExecutionOnUpdate: true,
       stages: [
         {
           stageName: 'Source',
