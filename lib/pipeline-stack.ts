@@ -55,25 +55,31 @@ export class PipelineStack extends cdk.Stack {
       outputs: [sourceArtifact],
     });
 
-    const synthAction = pps.SimpleSynthAction.standardNpmSynth({
-      sourceArtifact,
-      cloudAssemblyArtifact,
-      installCommand: 'npm i -g npm@latest; npm i -g cdk; npm install',
-      environment: {
-        privileged: true,
-      },
-    });
+    // const synthAction = pps.SimpleSynthAction.standardNpmSynth({
+    //   sourceArtifact,
+    //   cloudAssemblyArtifact,
+    //   installCommand: 'npm i -g npm@latest; npm i -g cdk; npm install',
+    //   environment: {
+    //     privileged: true,
+    //   },
+    // });
 
-    const pipeline = new pps.CdkPipeline(this, 'CICD', {
-      codePipeline: custom_pipeline, // <--- inject pipeline here
-      cloudAssemblyArtifact,
-      sourceAction,
-      synthAction,
-      singlePublisherPerType: true,
+    const pipeline = new pps.CodePipeline(this, 'CICD', {
+      synth: new pps.ShellStep('Synth', {
+        input: sourceAction,
+        commands: ['npm install', 'npm run build', 'npm run synth'],
+      }),
     });
+    // const pipeline = new pps.CdkPipeline(this, 'CICD', {
+    //   codePipeline: custom_pipeline, // <--- inject pipeline here
+    //   cloudAssemblyArtifact,
+    //   sourceAction,
+    //   synthAction,
+    //   singlePublisherPerType: true,
+    // });
 
     // this is where we add the application stages (dev, test, prod deployment stages)
-    const devStage = pipeline.addApplicationStage(new DummyAppStage(this, 'Dev', { branch }));
+    const devStage = pipeline.addStage(new DummyAppStage(this, 'Dev', { branch }));
 
     // could also pass in environment values like account and region
     // const devStage = pipeline.addApplicationStage(
@@ -83,23 +89,23 @@ export class PipelineStack extends cdk.Stack {
 
     // these actions can be whatever. they're just dummy actions for this example
     // but it does demonstrate a way to do actions in parallel, which is nice
-    const current_step_number = devStage.nextSequentialRunOrder();
-    devStage.addActions(
-      new pps.ShellScriptAction({
-        actionName: 'CDKUnitTests',
-        runOrder: current_step_number, // <--- this makes it run in parallel with the next entry
-        additionalArtifacts: [sourceArtifact],
-        commands: ['npm install', 'npm run build', 'npm run test'],
-      })
-    );
-    devStage.addActions(
-      new pps.ShellScriptAction({
-        actionName: 'SecOps',
-        runOrder: current_step_number, // <--- this makes it run in parallel with the previous entry
-        additionalArtifacts: [sourceArtifact],
-        commands: ["echo 'some secops commands"],
-      })
-    );
+    // const current_step_number = devStage.nextSequentialRunOrder();
+    // devStage.addActions(
+    //   new pps.ShellScriptAction({
+    //     actionName: 'CDKUnitTests',
+    //     runOrder: current_step_number, // <--- this makes it run in parallel with the next entry
+    //     additionalArtifacts: [sourceArtifact],
+    //     commands: ['npm install', 'npm run build', 'npm run test'],
+    //   })
+    // );
+    // devStage.addActions(
+    //   new pps.ShellScriptAction({
+    //     actionName: 'SecOps',
+    //     runOrder: current_step_number, // <--- this makes it run in parallel with the previous entry
+    //     additionalArtifacts: [sourceArtifact],
+    //     commands: ["echo 'some secops commands"],
+    //   })
+    // );
 
     const webhook = new cpl.CfnWebhook(this, 'GenericWebhook', {
       targetAction: 'Source',
