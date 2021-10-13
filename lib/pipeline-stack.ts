@@ -80,7 +80,7 @@ export class PipelineStack extends cdk.Stack {
                         'npm i -g cdk',
                         'node --version',
                         'npm --version',
-                        'cdk -version',
+                        'cdk --version',
                       ],
                     },
                     build: {
