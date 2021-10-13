@@ -6,7 +6,7 @@ import * as cpla from '@aws-cdk/aws-codepipeline-actions';
 import { GenericGitSource } from './generic-git-source';
 import { CodeBuildSourceAction } from './codebuild-source-action';
 
-export class CustomSourceStack extends cdk.Stack {
+export class PipelineStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
