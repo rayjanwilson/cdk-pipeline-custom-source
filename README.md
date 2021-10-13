@@ -15,8 +15,6 @@ The webhook triggers CodePipeline. Codepipeline sends an event to EventBus. Code
 
 ## A few nice features added in
 - Custom artifact buckets that get destroyed when stack is deleted. Also ensures encryption, etc
-- example uses `@aws-cdk/pipelines` for advanced self-mutating pipeline
-- example shows how to add deployment stages, including cross-account / cross region
 - example shows how to run actions in parallel
 
 ## Configuration
