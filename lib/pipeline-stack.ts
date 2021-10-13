@@ -36,7 +36,7 @@ export class PipelineStack extends cdk.Stack {
     const pipeline = new cpl.Pipeline(this, pipelineName, {
       pipelineName,
       artifactBucket,
-      restartExecutionOnUpdate: true,
+      // restartExecutionOnUpdate: true,
       stages: [
         {
           stageName: 'Source',
@@ -84,7 +84,7 @@ export class PipelineStack extends cdk.Stack {
                       ],
                     },
                     build: {
-                      commands: ['ls -la', 'npm ci', 'cdk synth'],
+                      commands: ['ls -la', 'npm install', 'cdk synth'],
                     },
                   },
                 }),
