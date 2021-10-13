@@ -59,13 +59,9 @@ export class PipelineStack extends cdk.Stack {
       sourceArtifact,
       cloudAssemblyArtifact,
       installCommand: 'npm i -g npm@latest; npm i -g cdk; npm install',
-      // buildCommand: 'cdk synth',
       environment: {
         privileged: true,
       },
-      // environmentVariables: {
-      //   branch: { value: branch },
-      // },
     });
 
     const pipeline = new pps.CdkPipeline(this, 'CICD', {
