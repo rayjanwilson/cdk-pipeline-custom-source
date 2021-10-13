@@ -9,7 +9,9 @@ What is less evident from other documentation is that in order to do this with C
 
 The magic happens in the files `lib/codebuild-source-provider.ts` and `lib/codebuild-source-action.ts`. It's implemented in `/lib/generic-git-source.ts` and used in the pipeline stack `custom-source-stack.ts`
 
-A webhook is made that you provide to your git source repository. 
+A webhook is made that you provide to your git source repository. It has two filters in it, one for essentially every git provider ever, and one for azure devops because they just had to be special.
+
+The webhook triggers CodePipeline. Codepipeline sends an event to EventBus. CodeBuild is registered to kick off when a certain pattern comes through EventBus. After that, everythign works as normal
 
 ## Configuration
 - we are using `.env` to store configurable values
