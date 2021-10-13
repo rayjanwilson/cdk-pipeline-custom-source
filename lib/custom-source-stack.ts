@@ -10,9 +10,9 @@ export class CustomSourceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const branch = 'master';
-    const giturl = 'git@github.com:rayjanwilson/cdk-pipeline-custom-source.git';
-    const keyname = 'SSHKeyGithub';
+    const branch = process.env.BRANCH!; //'master';
+    const giturl = process.env.GITURL!; //'git@github.com:rayjanwilson/cdk-pipeline-custom-source.git';
+    const keyname = process.env.SSHKEYNAME!; //'SSHKeyGithub';
     const buildspec_location = `${__dirname}/source_action_buildspec.yml`;
     const pipelineName = `Example-Pipeline-${branch}`;
 

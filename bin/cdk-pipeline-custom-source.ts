@@ -1,5 +1,5 @@
-#!/usr/bin/env node
 import 'source-map-support/register';
+import 'dotenv/config';
 import * as cdk from '@aws-cdk/core';
 import { CustomSourceStack } from '../lib/custom-source-stack';
 
