@@ -2,14 +2,11 @@ import * as cdk from '@aws-cdk/core';
 import * as cb from '@aws-cdk/aws-codebuild';
 import * as cpl from '@aws-cdk/aws-codepipeline';
 import * as cpla from '@aws-cdk/aws-codepipeline-actions';
-import * as s3 from '@aws-cdk/aws-s3';
-import * as pps from '@aws-cdk/pipelines';
 
 import { GenericGitSource } from './generic-git-source';
 import { CodeBuildSourceAction } from './codebuild-source-action';
-import { DummyAppStage } from './dummy-app-stage';
 
-export class PipelineStack extends cdk.Stack {
+export class CustomSourceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -28,89 +25,71 @@ export class PipelineStack extends cdk.Stack {
     });
 
     const sourceArtifact = new cpl.Artifact();
-    const cloudAssemblyArtifact = new cpl.Artifact();
-
-    const artifactBucket = new s3.Bucket(this, 'ArtifactsBucket', {
-      bucketName: cdk.PhysicalName.GENERATE_IF_NEEDED,
-      encryption: s3.BucketEncryption.KMS_MANAGED,
-      blockPublicAccess: new s3.BlockPublicAccess(s3.BlockPublicAccess.BLOCK_ALL),
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // <--- when the stack gets destroyed this bucket now gets destroyed
-      autoDeleteObjects: true, // <--- stands up a custom lambda resource
-    });
-    const custom_pipeline = new cpl.Pipeline(this, pipelineName, {
+    const pipeline = new cpl.Pipeline(this, pipelineName, {
       pipelineName,
-      artifactBucket,
-      restartExecutionOnUpdate: true,
+      stages: [
+        {
+          stageName: 'Source',
+          actions: [
+            new CodeBuildSourceAction({
+              actionName: 'Source',
+              cbsourceProvider: provider,
+              project: project,
+              pipelineName,
+              branch,
+              giturl,
+              sshsecretkey: keyname,
+              outputs: [sourceArtifact],
+            }),
+          ],
+        },
+        {
+          stageName: 'Build',
+          actions: [
+            new cpla.CodeBuildAction({
+              actionName: 'GenericBuild',
+              input: sourceArtifact,
+              project: new cb.Project(this, 'GenericBuild', {
+                environment: {
+                  buildImage: cb.LinuxBuildImage.STANDARD_5_0,
+                  computeType: cb.ComputeType.SMALL,
+                  privileged: true,
+                },
+                buildSpec: cb.BuildSpec.fromObject({
+                  version: 0.2,
+                  phases: {
+                    install: {
+                      'runtime-versions': {
+                        python: 3.9,
+                        nodejs: 14,
+                      },
+                    },
+                    pre_build: {
+                      commands: [
+                        'npm i -g npm@latest',
+                        'npm i -g cdk',
+                        'node --version',
+                        'npm --version',
+                        'cdk -version',
+                      ],
+                    },
+                    build: {
+                      commands: ['ls -la', 'npm ci', 'cdk synth'],
+                    },
+                  },
+                }),
+              }),
+            }),
+          ],
+        },
+      ],
     });
-    custom_pipeline.artifactBucket.grantReadWrite(project);
-
-    const sourceAction = new CodeBuildSourceAction({
-      actionName: 'Source',
-      cbsourceProvider: provider,
-      project: project,
-      pipelineName,
-      branch,
-      giturl,
-      sshsecretkey: keyname,
-      outputs: [sourceArtifact],
-    });
-
-    // const synthAction = pps.SimpleSynthAction.standardNpmSynth({
-    //   sourceArtifact,
-    //   cloudAssemblyArtifact,
-    //   installCommand: 'npm i -g npm@latest; npm i -g cdk; npm install',
-    //   environment: {
-    //     privileged: true,
-    //   },
-    // });
-
-    const pipeline = new pps.CodePipeline(this, 'CICD', {
-      synth: new pps.ShellStep('Synth', {
-        input: sourceAction,
-        commands: ['npm install', 'npm run build', 'npm run synth'],
-      }),
-    });
-    // const pipeline = new pps.CdkPipeline(this, 'CICD', {
-    //   codePipeline: custom_pipeline, // <--- inject pipeline here
-    //   cloudAssemblyArtifact,
-    //   sourceAction,
-    //   synthAction,
-    //   singlePublisherPerType: true,
-    // });
-
-    // this is where we add the application stages (dev, test, prod deployment stages)
-    const devStage = pipeline.addStage(new DummyAppStage(this, 'Dev', { branch }));
-
-    // could also pass in environment values like account and region
-    // const devStage = pipeline.addApplicationStage(
-    //   new DummyAppStage(this, 'Dev', { branch, env: { account: '12345', region: 'us-east-2' } })
-    // );
-    // in fact you could fetch the account number and region from secrets manager
-
-    // these actions can be whatever. they're just dummy actions for this example
-    // but it does demonstrate a way to do actions in parallel, which is nice
-    // const current_step_number = devStage.nextSequentialRunOrder();
-    // devStage.addActions(
-    //   new pps.ShellScriptAction({
-    //     actionName: 'CDKUnitTests',
-    //     runOrder: current_step_number, // <--- this makes it run in parallel with the next entry
-    //     additionalArtifacts: [sourceArtifact],
-    //     commands: ['npm install', 'npm run build', 'npm run test'],
-    //   })
-    // );
-    // devStage.addActions(
-    //   new pps.ShellScriptAction({
-    //     actionName: 'SecOps',
-    //     runOrder: current_step_number, // <--- this makes it run in parallel with the previous entry
-    //     additionalArtifacts: [sourceArtifact],
-    //     commands: ["echo 'some secops commands"],
-    //   })
-    // );
+    pipeline.artifactBucket.grantReadWrite(project);
 
     const webhook = new cpl.CfnWebhook(this, 'GenericWebhook', {
       targetAction: 'Source',
-      targetPipeline: custom_pipeline.pipelineName,
-      targetPipelineVersion: custom_pipeline.pipelineVersion as unknown as number,
+      targetPipeline: pipeline.pipelineName,
+      targetPipelineVersion: pipeline.pipelineVersion as unknown as number,
       filters: [
         {
           jsonPath: '$.ref', // catches for most git sources
