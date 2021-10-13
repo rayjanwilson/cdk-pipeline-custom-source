@@ -11,7 +11,10 @@ The magic happens in the files `lib/codebuild-source-provider.ts` and `lib/codeb
 
 A webhook is made that you provide to your git source repository. It has two filters in it, one for essentially every git provider ever, and one for azure devops because they just had to be special.
 
-The webhook triggers CodePipeline. Codepipeline sends an event to EventBus. CodeBuild is registered to kick off when a certain pattern comes through EventBus. After that, everythign works as normal
+The webhook triggers CodePipeline. Codepipeline sends an event to EventBus. CodeBuild is registered to kick off when a certain pattern comes through EventBus. After that, everythign works as normal.
+
+## A few nice features added in
+- Custom artifact buckets that get destroyed when stack is deleted. Also ensures encryption, etc
 
 ## Configuration
 - we are using `.env` to store configurable values
